@@ -2,21 +2,26 @@
 # idb resource definitions adapted from facebook/homebrew-fb (Meta Platforms).
 # See THIRD_PARTY_LICENSES/homebrew-fb.txt for the upstream BSD license.
 class IsimbotMcp < Formula
-  include Language::Python::Virtualenv
-
   desc "iSimBot-MCP: MCP server for iOS simulator automation"
   homepage "https://github.com/wei0121/iSimBot-mcp"
   url "https://github.com/wei0121/iSimBot-mcp/archive/8916abcc78fc0bd80b413c210bd20ac4f9354804.tar.gz"
-  version "1.0.0"
+  version "1.0.2"
   sha256 "a477a632319608e4a7ce8055baa82b5d9ae620bbe1955f9ac4381aece5de2e0d"
   license "MIT"
-  revision 1
 
   depends_on arch: :arm64
   depends_on macos: :sequoia
   depends_on xcode: "26.0"
-  depends_on "node"
-  depends_on "python@3.14"
+  resource "node-runtime" do
+    url "https://nodejs.org/dist/v24.22.2/node-v24.22.2-darwin-arm64.tar.gz"
+    sha256 "aa9549349e47dffaa42dcf95d6e06ade8c4bdafc980979883b88767670df385a"
+  end
+
+  resource "python-runtime" do
+    url "https://github.com/astral-sh/python-build-standalone/releases/download/20261026/cpython-3.14.10%2B20261026-aarch64-apple-darwin-install_only_stripped.tar.gz"
+    sha256 "95eb8c87d16af37c54e9765e31d8c56c0d8ffa9968ea0f704f73a9b83f84e9f9"
+  end
+
 
   resource "fb-idb" do
     url "https://github.com/facebook/idb/releases/download/v1.7.8/fb_idb-1.7.8-py3-none-any.whl"
@@ -65,23 +70,71 @@ class IsimbotMcp < Formula
 
 
   def install
-    venv = virtualenv_create(libexec/"idb-venv", "python3.14")
-    venv.pip_install resources.reject { |r| %w[fb-idb idb-companion].include?(r.name) }
-    venv.pip_install resource("fb-idb")
-    companion = libexec/"idb-companion"
-    resource("idb-companion").stage do
-      companion.install Dir["*"]
+    # This packaging release reuses the pinned application source above.
+    # Keep CLI/MCP metadata aligned with the formula until the next source update.
+    %w[package.json package-lock.json].each do |name|
+      metadata = JSON.parse((buildpath/name).read)
+      metadata["version"] = version.to_s
+      metadata["packages"][""]["version"] = version.to_s if name == "package-lock.json"
+      (buildpath/name).write JSON.pretty_generate(metadata) + "\n"
     end
+    node = libexec/"node"
+    python = libexec/"python"
+    resource("node-runtime").stage { node.install Dir["*"] }
+    resource("python-runtime").stage { python.install Dir["*"] }
+    ENV.prepend_path "PATH", node/"bin"
+
+    # All Python packages live inside our standalone interpreter, not global Python.
+    resources.reject { |r| %w[node-runtime python-runtime idb-companion].include?(r.name) }.each do |r|
+      r.stage do
+        target = Pathname.pwd
+        target /= r.downloader.basename if r.url.end_with?(".whl")
+        system python/"bin/python3", "-I", "-m", "pip", "install", "--no-deps", "--no-compile",
+               "--disable-pip-version-check", target
+      end
+    end
+    companion = libexec/"idb-companion"
+    resource("idb-companion").stage { companion.install Dir["*"] }
     odie "idb_companion missing from archive" unless (companion/"idb_companion").exist?
     odie "Companion resources missing" unless (companion/"Resources/libShimulator-iOS.dylib").exist?
-    system Formula["node"].opt_bin/"npm", "ci", "--include=dev", "--ignore-scripts", "--no-audit", "--no-fund"
-    system Formula["node"].opt_bin/"npm", "run", "build"
-    system Formula["node"].opt_bin/"npm", "prune", "--omit=dev", "--ignore-scripts", "--no-audit", "--no-fund"
+
+    npm = node/"lib/node_modules/npm/bin/npm-cli.js"
+    if (buildpath/"src").directory?
+      system node/"bin/node", npm, "ci", "--include=dev", "--ignore-scripts", "--no-audit", "--no-fund"
+      system node/"bin/node", npm, "run", "build"
+      system node/"bin/node", npm, "prune", "--omit=dev", "--ignore-scripts", "--no-audit", "--no-fund"
+    else
+      system node/"bin/node", npm, "ci", "--omit=dev", "--ignore-scripts", "--no-audit", "--no-fund"
+    end
     libexec.install "dist", "node_modules", "package.json", "package-lock.json"
     chmod 0755, libexec/"dist/index.js"
-    # Desktop clients may have a minimal PATH. Keep stable opt paths across upgrades.
-    runtime_path = [Formula["node"].opt_bin, opt_libexec/"idb-venv/bin",
-                    opt_libexec/"idb-companion", "/usr/bin", "/bin", "/usr/sbin", "/sbin"].join(":")
+
+    # Keep runtime binaries and licenses; discard build/install tools and documentation.
+    rm_r [node/"include", node/"share", node/"lib"]
+    (node/"bin").children.each { |p| rm p unless p.basename.to_s == "node" }
+    rm [node/"README.md", node/"CHANGELOG.md"]
+    rm_r python/"include"
+    stdlib = python/"lib/python3.14"
+    %w[test idlelib tkinter turtledemo ensurepip].each do |name|
+      rm_r stdlib/name if (stdlib/name).exist?
+    end
+    rm_r python/"share/man" if (python/"share/man").exist?
+    (stdlib/"site-packages").glob("pip{,-*.dist-info}").each { |p| rm_r p }
+    python.glob("lib/**/*.a").each { |p| rm p }
+    python.glob("lib/**/__pycache__").each { |p| rm_r p }
+    (python/"bin").children.each do |p|
+      rm p unless %w[python python3 python3.14].include?(p.basename.to_s)
+    end
+
+    # Expose only isimbot globally. idb's interpreter is selected explicitly.
+    (libexec/"bin").mkpath
+    (libexec/"bin/idb").write <<~SH
+      #!/bin/sh
+      exec "#{opt_libexec}/python/bin/python3" -I -m idb.cli.main "$@"
+    SH
+    chmod 0755, libexec/"bin/idb"
+    runtime_path = [opt_libexec/"node/bin", opt_libexec/"bin", opt_libexec/"idb-companion",
+                    "/usr/bin", "/bin", "/usr/sbin", "/sbin"].join(":")
     (bin/"isimbot").write_env_script opt_libexec/"dist/index.js",
       PATH: runtime_path, ISIMBOT_LAUNCHER: (opt_bin/"isimbot").to_s
   end
@@ -103,12 +156,16 @@ class IsimbotMcp < Formula
   end
 
   test do
-    assert_match "usage", shell_output("#{libexec}/idb-venv/bin/idb --help")
+    assert_match "v24.", shell_output("#{libexec}/node/bin/node --version")
+    assert_match "Python 3.14.", shell_output("#{libexec}/python/bin/python3 --version")
+    refute_path_exists libexec/"node/bin/npm"
+    refute_path_exists libexec/"python/lib/python3.14/site-packages/pip"
+    assert_match "usage", shell_output("#{libexec}/bin/idb --help")
     assert_match "build_date", shell_output("#{libexec}/idb-companion/idb_companion --version")
     assert_match version.to_s, shell_output("#{bin}/isimbot --version")
     assert_match "isimbot setup", shell_output("#{bin}/isimbot --help")
     # Exercise the native image dependency without opening or changing a simulator.
-    system Formula["node"].opt_bin/"node", "--input-type=module", "-e", <<~JS
+    system libexec/"node/bin/node", "--input-type=module", "-e", <<~JS
       import { createRequire } from 'node:module';
       const sharp = createRequire('#{libexec}/package.json')('sharp');
       const image = await sharp({create: {width: 10, height: 20, channels: 3, background: 'white'}}).png().toBuffer();
