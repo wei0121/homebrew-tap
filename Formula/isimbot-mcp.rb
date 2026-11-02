@@ -6,7 +6,7 @@ class IsimbotMcp < Formula
   homepage "https://github.com/wei0121/iSimBot-mcp"
   url "https://github.com/wei0121/iSimBot-mcp/releases/download/v1.0.3/isimbot-mcp-1.0.3.tar.gz"
   version "1.0.3"
-  sha256 "a6b9f7ce0e3eee944de4519a08d6cb26cc8e48f4f60ad74561a7a84d365431f4"
+  sha256 "497416f81eb58e9d98c6312c6dea0176ec3e092f4cea18f8d33e8fa05caa0f97"
   license "MIT"
 
   depends_on arch: :arm64
