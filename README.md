@@ -27,7 +27,9 @@ See [installation help](https://github.com/wei0121/iSimBot-mcp/blob/main/doc/ins
 
 ## Maintain
 
-The formula pins a source commit and builds it during installation. For each release,
-update the source URL, version, and SHA256 together, then test with Homebrew.
+The formula downloads a versioned release asset containing compiled code.
+Run `npm run brew:prepare` in iSimBot-MCP, upload the resulting archive to the
+matching GitHub release, and update the formula URL, version, and SHA256 before
+pushing this tap. Upload the exact archive used to calculate the checksum.
 Private Node/Python versions and checksums are pinned in the formula; maintain
 their security updates alongside the application.

@@ -1,12 +1,12 @@
-# Source is pinned to an immutable commit. Update URL, version and SHA256 together.
+# Release asset includes compiled code. Update URL, version and SHA256 together.
 # idb resource definitions adapted from facebook/homebrew-fb (Meta Platforms).
 # See THIRD_PARTY_LICENSES/homebrew-fb.txt for the upstream BSD license.
 class IsimbotMcp < Formula
   desc "iSimBot-MCP: MCP server for iOS simulator automation"
   homepage "https://github.com/wei0121/iSimBot-mcp"
-  url "https://github.com/wei0121/iSimBot-mcp/archive/8916abcc78fc0bd80b413c210bd20ac4f9354804.tar.gz"
-  version "1.0.2"
-  sha256 "a477a632319608e4a7ce8055baa82b5d9ae620bbe1955f9ac4381aece5de2e0d"
+  url "https://github.com/wei0121/iSimBot-mcp/releases/download/v1.0.3/isimbot-mcp-1.0.3.tar.gz"
+  version "1.0.3"
+  sha256 "a6b9f7ce0e3eee944de4519a08d6cb26cc8e48f4f60ad74561a7a84d365431f4"
   license "MIT"
 
   depends_on arch: :arm64
@@ -70,14 +70,6 @@ class IsimbotMcp < Formula
 
 
   def install
-    # This packaging release reuses the pinned application source above.
-    # Keep CLI/MCP metadata aligned with the formula until the next source update.
-    %w[package.json package-lock.json].each do |name|
-      metadata = JSON.parse((buildpath/name).read)
-      metadata["version"] = version.to_s
-      metadata["packages"][""]["version"] = version.to_s if name == "package-lock.json"
-      File.write(buildpath/name, JSON.pretty_generate(metadata) + "\n")
-    end
     node = libexec/"node"
     python = libexec/"python"
     resource("node-runtime").stage { node.install Dir["*"] }
