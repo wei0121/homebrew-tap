@@ -7,7 +7,6 @@ Homebrew formulae for [iSimBot-MCP](https://github.com/wei0121/iSimBot-mcp).
 Requires Apple Silicon, macOS 15+, and Xcode 26+ with an iOS simulator runtime.
 
 ```bash
-brew tap wei0121/tap
 brew install wei0121/tap/isimbot-mcp
 isimbot setup
 ```
