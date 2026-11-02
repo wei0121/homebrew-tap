@@ -76,7 +76,7 @@ class IsimbotMcp < Formula
       metadata = JSON.parse((buildpath/name).read)
       metadata["version"] = version.to_s
       metadata["packages"][""]["version"] = version.to_s if name == "package-lock.json"
-      (buildpath/name).write JSON.pretty_generate(metadata) + "\n"
+      File.write(buildpath/name, JSON.pretty_generate(metadata) + "\n")
     end
     node = libexec/"node"
     python = libexec/"python"
