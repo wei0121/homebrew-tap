@@ -1,0 +1,44 @@
+name: Update iSimBot formula
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 * * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-isimbot-formula
+  cancel-in-progress: false
+
+jobs:
+  update:
+    if: github.repository == 'wei0121/homebrew-tap'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Test updater
+        run: python3 -m unittest discover -s .github/scripts -p 'test_*.py'
+      - name: Check latest release and update formula
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 .github/scripts/update_formula.py
+      - name: Validate formula syntax
+        run: ruby -c Formula/isimbot-mcp.rb
+      - name: Commit and push if changed
+        run: |
+          if git diff --quiet -- Formula/isimbot-mcp.rb; then
+            echo 'Formula is already up to date.' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          git diff --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add Formula/isimbot-mcp.rb
+          git commit -m 'chore: update isimbot-mcp formula from latest release'
+          git push origin HEAD:main
+          echo 'Updated Formula/isimbot-mcp.rb and pushed to main.' >> "$GITHUB_STEP_SUMMARY"

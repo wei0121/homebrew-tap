@@ -27,9 +27,15 @@ See [installation help](https://github.com/wei0121/iSimBot-mcp/blob/main/doc/ins
 
 ## Maintain
 
-The formula downloads a versioned release asset containing compiled code.
-Run `npm run brew:prepare` in iSimBot-MCP, upload the resulting archive to the
-matching GitHub release, and update the formula URL, version, and SHA256 before
-pushing this tap. Upload the exact archive used to calculate the checksum.
-Private Node/Python versions and checksums are pinned in the formula; maintain
-their security updates alongside the application.
+The **Update iSimBot formula** Action checks the latest stable iSimBot-MCP
+Release every hour. You can also run it manually from **Actions → Update iSimBot
+formula → Run workflow**.
+
+When a newer version is available, it verifies the published formula, archive URL
+and SHA256, then commits and pushes the formula to `main`. It uses the built-in
+`GITHUB_TOKEN`; no extra secret is needed. Branch rules must allow direct updates.
+No commit is created when the version is unchanged; older releases never downgrade
+the formula. Scheduled runs can be delayed by GitHub.
+
+Private Node/Python versions and checksums come from the published formula.
+Maintain their security updates in the source project.
