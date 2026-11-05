@@ -4,9 +4,9 @@
 class IsimbotMcp < Formula
   desc "iSimBot-MCP: MCP server for iOS simulator automation"
   homepage "https://github.com/wei0121/iSimBot-mcp"
-  url "https://github.com/wei0121/iSimBot-mcp/releases/download/v1.0.6/isimbot-mcp-1.0.6.tar.gz"
-  version "1.0.6"
-  sha256 "bde4ed83057d47e0761884bf781b80ae7b27a7f75d768a55cbc339ebaa193010"
+  url "https://github.com/wei0121/iSimBot-mcp/releases/download/v1.0.7/isimbot-mcp-1.0.7.tar.gz"
+  version "1.0.7"
+  sha256 "1dfcd4c80f91dbceda3d126e80068cf5dfe0c6e4f5dd8f4b9f8be129b941c366"
   license "MIT"
 
   depends_on arch: :arm64
@@ -99,6 +99,7 @@ class IsimbotMcp < Formula
       system node/"bin/node", npm, "ci", "--omit=dev", "--ignore-scripts", "--no-audit", "--no-fund"
     end
     libexec.install "dist", "node_modules", "package.json", "package-lock.json"
+    odie "Observation framework missing from release" unless (libexec/"dist/native/isimbot-observer.dylib").exist?
     chmod 0755, libexec/"dist/index.js"
 
     # Keep runtime binaries and licenses; discard build/install tools and documentation.
@@ -156,6 +157,8 @@ class IsimbotMcp < Formula
     assert_match "build_date", shell_output("#{libexec}/idb-companion/idb_companion --version")
     assert_match version.to_s, shell_output("#{bin}/isimbot --version")
     assert_match "isimbot setup", shell_output("#{bin}/isimbot --help")
+    assert_path_exists libexec/"dist/native/isimbot-observer.dylib"
+    system "/usr/bin/lipo", "-verify_arch", "arm64", libexec/"dist/native/isimbot-observer.dylib"
     # Exercise the native image dependency without opening or changing a simulator.
     system libexec/"node/bin/node", "--input-type=module", "-e", <<~JS
       import { createRequire } from 'node:module';
