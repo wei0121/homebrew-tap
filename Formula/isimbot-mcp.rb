@@ -4,9 +4,9 @@
 class IsimbotMcp < Formula
   desc "iSimBot-MCP: MCP server for iOS simulator automation"
   homepage "https://github.com/wei0121/iSimBot-mcp"
-  url "https://github.com/wei0121/iSimBot-mcp/releases/download/v1.0.7/isimbot-mcp-1.0.7.tar.gz"
-  version "1.0.7"
-  sha256 "1dfcd4c80f91dbceda3d126e80068cf5dfe0c6e4f5dd8f4b9f8be129b941c366"
+  url "https://github.com/wei0121/iSimBot-mcp/releases/download/v1.0.8/isimbot-mcp-1.0.8.tar.gz"
+  version "1.0.8"
+  sha256 "9da742e778000b9d1b8d7e7fd518970f763ac4706cedf4d07a86842610be6019"
   license "MIT"
 
   depends_on arch: :arm64
