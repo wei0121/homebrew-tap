@@ -4,10 +4,10 @@
 class IsimbotMcp < Formula
   desc "iSimBot-MCP: MCP server for iOS simulator automation"
   homepage "https://github.com/wei0121/iSimBot-mcp"
-  url "https://github.com/wei0121/iSimBot-mcp/releases/download/v1.0.8/isimbot-mcp-1.0.8.tar.gz"
-  version "1.0.8"
-  sha256 "9da742e778000b9d1b8d7e7fd518970f763ac4706cedf4d07a86842610be6019"
-  license "MIT"
+  url "https://github.com/wei0121/iSimBot-mcp/releases/download/v1.0.9/isimbot-mcp-1.0.9.tar.gz"
+  version "1.0.9"
+  sha256 "1991ffb9a3cb0cb10a8a4c25836a3417272ae9814bbc40647a4005d252b81ad7"
+  license "Apache-2.0"
 
   depends_on arch: :arm64
   depends_on macos: :sequoia
@@ -98,6 +98,7 @@ class IsimbotMcp < Formula
     else
       system node/"bin/node", npm, "ci", "--omit=dev", "--ignore-scripts", "--no-audit", "--no-fund"
     end
+    pkgshare.install "LICENSE", "NOTICE"
     libexec.install "dist", "node_modules", "package.json", "package-lock.json"
     odie "Observation framework missing from release" unless (libexec/"dist/native/isimbot-observer.dylib").exist?
     chmod 0755, libexec/"dist/index.js"
@@ -155,6 +156,8 @@ class IsimbotMcp < Formula
     refute_path_exists libexec/"python/lib/python3.14/site-packages/pip"
     assert_match "usage", shell_output("#{libexec}/bin/idb --help")
     assert_match "build_date", shell_output("#{libexec}/idb-companion/idb_companion --version")
+    assert_path_exists pkgshare/"LICENSE"
+    assert_match "Copyright 2026 Weiren Xie", (pkgshare/"NOTICE").read
     assert_match version.to_s, shell_output("#{bin}/isimbot --version")
     assert_match "isimbot setup", shell_output("#{bin}/isimbot --help")
     assert_path_exists libexec/"dist/native/isimbot-observer.dylib"
